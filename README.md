@@ -1,6 +1,7 @@
 # safebase
 
 installer go sur https://go.dev/dl/
+
 verifier avec $go version
 
 
