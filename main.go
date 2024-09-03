@@ -11,6 +11,6 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 
 func main() {
     http.HandleFunc("/", homePage)
-    fmt.Println("Le serveur démarre sur http://localhost:8080")
-    http.ListenAndServe(":8080", nil)
+    fmt.Println("Le serveur démarre sur http://localhost:8081")
+    http.ListenAndServe(":8081", nil)
 }
