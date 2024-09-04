@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	connStr := "user=myuser password=mypassword dbname=mydatabase sslmode=disable"
+	connStr := "user=admin password=securepassword dbname=safebase sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		fmt.Println("Error opening database connection:", err)
