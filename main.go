@@ -1,16 +1,26 @@
 package main
 
 import (
-    "fmt"
-    "net/http"
+	"database/sql"
+	"fmt"
+
+	_ "github.com/lib/pq"
 )
 
-func homePage(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintf(w, "Bienvenue sur SafeBase! ANAIS JEREMY")
-}
-
 func main() {
-    http.HandleFunc("/", homePage)
-    fmt.Println("Le serveur démarre sur http://localhost:8081")
-    http.ListenAndServe(":8081", nil)
+	connStr := "user=myuser password=mypassword dbname=mydatabase sslmode=disable"
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		fmt.Println("Error opening database connection:", err)
+		return
+	}
+	defer db.Close()
+
+	err = db.Ping()
+	if err != nil {
+		fmt.Println("Error connecting to database:", err)
+		return
+	}
+
+	fmt.Println("Successfully connected to PostgreSQL!")
 }
