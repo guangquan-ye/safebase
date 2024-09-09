@@ -1,4 +1,5 @@
 services:
+
   safebase:
     image: postgres:15
     container_name: safebase
@@ -11,18 +12,6 @@ services:
     volumes:
       - safebase_data:/var/lib/postgresql/data
 
-  fnac:
-    image: postgres:15
-    container_name: fnac
-    environment:
-      POSTGRES_USER: admins
-      POSTGRES_PASSWORD: securepassword
-      POSTGRES_DB: fnac
-    ports:
-      - "5433:5432"
-    volumes:
-      - fnac_data:/var/lib/postgresql/data
-
   apple:
     image: postgres:15
     container_name: apple
@@ -31,7 +20,7 @@ services:
       POSTGRES_PASSWORD: securepassword
       POSTGRES_DB: apple
     ports:
-      - "5434:5432"
+      - "5433:5432"
     volumes:
       - apple_data:/var/lib/postgresql/data
 
@@ -39,16 +28,35 @@ services:
     image: postgres:15
     container_name: blizzard
     environment:
-      POSTGRES_USER: admin4
+      POSTGRES_USER: admin
       POSTGRES_PASSWORD: securepassword
-      POSTGRES_DB: blizzard  # Ajout du nom de la base de données pour Blizzard
+      POSTGRES_DB: blizzard
     ports:
-      - "5435:5432"
+      - "5434:5432"
     volumes:
       - blizzard_data:/var/lib/postgresql/data
 
+
+  huawey:
+    image: mysql:8
+    container_name: huawey
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: huawey
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: securepassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - huawey_data:/var/lib/mysql
 volumes:
   safebase_data:
-  fnac_data:
+  huawey_data:
   apple_data:
   blizzard_data:
+
+# healthcheck:
+#   test: ["CMD-SHELL", "pg_isready -U admin -d safebase"]
+#   interval: 10s
+#   timeout: 5s
+#   retries: 5

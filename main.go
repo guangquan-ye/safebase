@@ -30,8 +30,8 @@ func connectMainDB() error {
 }
 
 // connectDynamicDB établit une connexion dynamique à une autre base de données
-func connectDynamicDB(userName, password, dbName, dbPort string) (*sql.DB, error) {
-	// Construction de la chaîne de connexion
+func connectDynamicDB(dbName, dbPort, userName, password string) (*sql.DB, error) {
+	// Utiliser un format similaire à la connexion principale
 	connStr := fmt.Sprintf("user=%s password=%s dbname=%s port=%s sslmode=disable", userName, password, dbName, dbPort)
 
 	// Ouverture de la connexion
@@ -58,26 +58,40 @@ func main() {
 
 	app := fiber.New()
 
+	// ================================================================================
+	// ================================Route en GET ===================================
+
+	// app.Get("/", func(c *fiber.Ctx) error {
+
+	// 	return c.SendString("le / fonctionne tres bien ! Au moins ca....")
+	// })
+
 	// Route pour exécuter une requête sur la base de données principale
-	app.Get("/main", func(c *fiber.Ctx) error {
+	app.Get("/", func(c *fiber.Ctx) error {
 		var result string
-		err := mainDB.QueryRow("SELECT 'Main DB connection active'").Scan(&result)
+		err := mainDB.QueryRow("Main DB connection active").Scan(&result)
 		if err != nil {
 			return c.Status(500).SendString("Query failed on main database: " + err.Error())
 		}
 		return c.SendString(result)
 	})
 
+	// ================================Route en GET ===================================
+	// ================================================================================
+
+	// ------------------------------------------------------------------------------------------------
+
+	// ================================================================================
+	// ================================Route en POST ===================================
+
 	// Route pour se connecter à une autre base de données dynamiquement et insérer un utilisateur
-	app.Post("/dynamic/adduser", func(c *fiber.Ctx) error {
+	app.Post("/connexion", func(c *fiber.Ctx) error {
 		// Récupérer les informations de la base de données cible et de l'utilisateur
 		var config struct {
 			DBName   string `json:"dbName"`
 			DBPort   string `json:"dbPort"`
 			UserName string `json:"userName"`
 			Password string `json:"password"`
-			ID       int    `json:"id"`
-			Name     string `json:"name"`
 		}
 
 		if err := c.BodyParser(&config); err != nil {
@@ -85,21 +99,40 @@ func main() {
 		}
 
 		// Se connecter dynamiquement à la base de données cible
-		dynamicDB, err := connectDynamicDB(config.UserName, config.Password, config.DBName, config.DBPort)
+		dynamicDB, err := connectDynamicDB(config.DBName, config.DBPort, config.UserName, config.Password)
 		if err != nil {
 			return c.Status(500).SendString("Failed to connect to dynamic database: " + err.Error())
 		}
 		defer dynamicDB.Close()
 
-		// Exécuter la requête INSERT dans la base de données cible
-		query := "INSERT INTO users (id, name) VALUES ($1, $2)"
-		_, err = dynamicDB.Exec(query, config.ID, config.Name)
-		if err != nil {
-			return c.Status(500).SendString("Failed to insert user in dynamic database: " + err.Error())
+		return c.SendString("Connected to the database successfully!")
+	})
+
+	app.Post("/getAll", func(c *fiber.Ctx) error {
+		// Récupérer les informations de la base de données cible et de l'utilisateur
+		var config struct {
+			DBName   string `json:"dbName"`
+			DBPort   string `json:"dbPort"`
+			UserName string `json:"userName"`
+			Password string `json:"password"`
 		}
 
-		return c.SendString("User added to dynamic database successfully")
+		if err := c.BodyParser(&config); err != nil {
+			return c.Status(400).SendString("Failed to parse JSON: " + err.Error())
+		}
+
+		// Se connecter dynamiquement à la base de données cible
+		dynamicDB, err := connectDynamicDB(config.DBName, config.DBPort, config.UserName, config.Password)
+		if err != nil {
+			return c.Status(500).SendString("Failed to connect to dynamic database: " + err.Error())
+		}
+		defer dynamicDB.Close()
+
+		return c.SendString("Connected to the database successfully!")
+
 	})
+	// ================================Route en POST ===================================
+	// ================================================================================
 
 	// Démarrer le serveur
 	log.Fatal(app.Listen(":8080"))
