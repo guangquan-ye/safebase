@@ -1,9 +1,12 @@
 package database
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
+	"os"
 	"os/exec"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
@@ -39,35 +42,58 @@ func ConnectDynamicDB(dbType, dbName, dbPort, userName, password string) (*sql.D
 
 func DumpBdd(dbType, dbName, dbPort, userName, password string) error {
 	var dumpCmd *exec.Cmd
-
 	fmt.Print("dbtype: ", dbType)
 	fmt.Print("dbName: ", dbName)
 	fmt.Print("dbPort: ", dbPort)
 	fmt.Print("userName: ", userName)
 	fmt.Print("password: ", password)
-
-	outputFile := fmt.Sprintf("/dumpFiles/%s.sql", dbName) // Crée le chemin du fichier
+	now := time.Now()
+	date := now.Format("02-01-2006_15:04:05")
+	fileName := dbName + "_" + date + ".sql"
 
 	switch dbType {
 	case "postgres":
-
 		// Commande pour faire un dump PostgreSQL
-		dumpCmd = exec.Command("docker", "exec", "safebase", "pg_dump", "-U", userName, "-h", "localhost", "-p", dbPort, dbName, "-f", outputFile)
+		dumpCmd = exec.Command(
+			"docker", "exec", dbName,
+			"sh", "-c", fmt.Sprintf(
+				"PGPASSWORD='%s' pg_dump -U %s -h localhost -p %s %s",
+				password, userName, dbPort, dbName,
+			),
+		)
 
 	case "mysql":
 		// Commande pour faire un dump MySQL
-		dumpCmd = exec.Command("mysqldump", "-u", userName, "-p"+password, dbName, "-r", outputFile)
+		dumpCmd = exec.Command(
+			"docker", "exec", "huawey",
+			"sh", "-c", fmt.Sprintf(
+				"mysqldump -u %s -p%s %s",
+				userName, password, dbName,
+			),
+		)
 
 	default:
 		return fmt.Errorf("unsupported database type: %s", dbType)
 	}
 
-	// Exécution de la commande Bash
-	dumpCmd.Env = append(dumpCmd.Env, fmt.Sprintf("PGPASSWORD=%s", password)) // Pour PostgreSQL
-
-	output, err := dumpCmd.CombinedOutput()
+	// Créer le fichier de dump
+	outputFile, err := os.Create("dumpFiles/" + fileName)
 	if err != nil {
-		return fmt.Errorf("failed to dump database: %v - %s", err, string(output))
+		return fmt.Errorf("failed to create output file: %v", err)
+	}
+	defer outputFile.Close()
+
+	// Rediriger la sortie de la commande vers le fichier
+	dumpCmd.Stdout = outputFile
+
+	// Capturer la sortie d'erreur (stderr)
+	var stderr bytes.Buffer
+	dumpCmd.Stderr = &stderr
+
+	// Exécuter la commande
+	if err := dumpCmd.Run(); err != nil {
+		// Afficher l'erreur avec le contenu de stderr
+		return fmt.Errorf("failed to dump database: %v - %s", err, stderr.String())
 	}
 
 	fmt.Printf("Database %s dumped successfully!\n", dbName)

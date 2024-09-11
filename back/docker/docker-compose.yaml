@@ -54,6 +54,9 @@ volumes:
   huawey_data:
   apple_data:
   blizzard_data:
+  dumpFiles:
+
+  
 
 # healthcheck:
 #   test: ["CMD-SHELL", "pg_isready -U admin -d safebase"]
