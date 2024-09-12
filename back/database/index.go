@@ -57,8 +57,8 @@ func DumpBdd(dbType, dbName, dbPort, userName, password string) error {
 		dumpCmd = exec.Command(
 			"docker", "exec", dbName,
 			"sh", "-c", fmt.Sprintf(
-				"PGPASSWORD='%s' pg_dump -U %s -h localhost -p %s %s",
-				password, userName, dbPort, dbName,
+				"PGPASSWORD='%s' pg_dump -U %s -h localhost -p %s %s > /backups/%s",
+				password, userName, dbPort, dbName, fileName,
 			),
 		)
 
@@ -67,8 +67,8 @@ func DumpBdd(dbType, dbName, dbPort, userName, password string) error {
 		dumpCmd = exec.Command(
 			"docker", "exec", "huawey",
 			"sh", "-c", fmt.Sprintf(
-				"mysqldump -u %s -p%s %s",
-				userName, password, dbName,
+				"mysqldump -u %s -p%s %s > /backups/%s",
+				userName, password, dbName, fileName,
 			),
 		)
 
@@ -85,7 +85,6 @@ func DumpBdd(dbType, dbName, dbPort, userName, password string) error {
 
 	// Rediriger la sortie de la commande vers le fichier
 	dumpCmd.Stdout = outputFile
-
 	// Capturer la sortie d'erreur (stderr)
 	var stderr bytes.Buffer
 	dumpCmd.Stderr = &stderr
