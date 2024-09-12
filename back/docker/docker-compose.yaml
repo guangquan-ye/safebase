@@ -1,5 +1,4 @@
 services:
-
   safebase:
     image: postgres:15
     container_name: safebase
@@ -11,6 +10,7 @@ services:
       - "5432:5432"
     volumes:
       - safebase_data:/var/lib/postgresql/data
+      - dumpFiles:/backups  
 
   apple:
     image: postgres:15
@@ -23,6 +23,7 @@ services:
       - "5433:5432"
     volumes:
       - apple_data:/var/lib/postgresql/data
+      - dumpFiles:/backups  
 
   blizzard:
     image: postgres:15
@@ -35,7 +36,7 @@ services:
       - "5434:5432"
     volumes:
       - blizzard_data:/var/lib/postgresql/data
-
+      - dumpFiles:/backups  
 
   huawey:
     image: mysql:8
@@ -49,17 +50,11 @@ services:
       - "3306:3306"
     volumes:
       - huawey_data:/var/lib/mysql
+      - dumpFiles:/backups  
+
 volumes:
   safebase_data:
   huawey_data:
   apple_data:
   blizzard_data:
   dumpFiles:
-
-  
-
-# healthcheck:
-#   test: ["CMD-SHELL", "pg_isready -U admin -d safebase"]
-#   interval: 10s
-#   timeout: 5s
-#   retries: 5
