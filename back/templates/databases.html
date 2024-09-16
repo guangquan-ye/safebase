@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.2"
+        integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ"
+        crossorigin="anonymous"></script>
+    <title>Databases</title>
+</head>
+
+<body>
+    <section class="flex flex-row">
+        <nav class="w-1/5 h-screen bg-blue-100 flex">
+            <ul class="flex flex-col m-5">
+                <li class="m-5">
+                    <a href="/" class="text-blue-500 underline">Dashboard</a>
+                </li>
+                <li class="m-5">
+                    <a href="/databases" class="text-blue-500 underline">Databases</a>
+                </li>
+                <li class="m-5">
+                    <a href="/backups" class="text-blue-500 underline">Backups</a>
+                </li>
+                <li class="m-5">
+                    <a href="/restores" class="text-blue-500 underline">Restores</a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="w-4/5 p-5">
+            <h1 class="text-3xl font-bold underline">Databases</h1>
+
+            <!-- Add Button -->
+            <button class="bg-blue-500 text-white px-4 py-2 rounded" onclick="openModal()">Add Database</button>
+
+            <!-- Modal Container -->
+            <div id="modal-container"></div>
+
+            <!-- Database Table Container -->
+            <div class="m-5" id="databases-container" hx-get="/getDatabases" hx-trigger="load" hx-swap="innerHTML">
+                <!-- Le tableau sera inséré ici -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Modal HTML Template -->
+    <template id="add-modal">
+        <div class="fixed inset-0 flex items-center justify-center bg-gray-500 bg-opacity-75">
+            <div class="bg-white p-5 rounded-lg shadow-lg w-1/3">
+                <h2 class="text-xl font-bold mb-4">Add Database</h2>
+                <form hx-post="/addDatabase" hx-trigger="submit" hx-target="#databases-container" hx-swap="innerHTML">
+                    <!-- Select for Database Type -->
+                    <div class="mb-4">
+                        <label for="DBType" class="block text-gray-700">Database Type</label>
+                        <select id="DBType" name="DBType" class="w-full border border-gray-300 px-3 py-2 rounded">
+                            <option value="postgres">PostgreSQL</option>
+                            <option value="mysql">MySQL</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="DBName" class="block text-gray-700">Database Name</label>
+                        <input type="text" id="DBName" name="DBName" class="w-full border border-gray-300 px-3 py-2 rounded">
+                    </div>
+                    <div class="mb-4">
+                        <label for="DBPort" class="block text-gray-700">Database Port</label>
+                        <input type="text" id="DBPort" name="DBPort" class="w-full border border-gray-300 px-3 py-2 rounded">
+                    </div>
+                    <div class="mb-4">
+                        <label for="UserName" class="block text-gray-700">User Name</label>
+                        <input type="text" id="UserName" name="UserName" class="w-full border border-gray-300 px-3 py-2 rounded">
+                    </div>
+                    <div class="mb-4">
+                        <label for="Password" class="block text-gray-700">Password</label>
+                        <input type="password" id="Password" name="Password" class="w-full border border-gray-300 px-3 py-2 rounded">
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded mr-2">Add</button>
+                        <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded" onclick="closeModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        // Open modal
+        function openModal() {
+            const template = document.getElementById('add-modal').content.cloneNode(true);
+            document.getElementById('modal-container').innerHTML = ''; // Clear previous content
+            document.getElementById('modal-container').appendChild(template);
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('modal-container').innerHTML = '';
+        }
+
+        // HTMX listener for debugging
+        document.body.addEventListener('htmx:beforeRequest', function (event) {
+            if (event.detail.path === '/addDatabase') {
+                console.log('Données envoyées:', event.detail.parameters);
+            }
+        });
+
+        document.body.addEventListener('htmx:responseError', function (event) {
+            console.error('Erreur HTMX:', event.detail.xhr.responseText);
+        });
+
+        // Trigger reload of databases-container
+        document.body.addEventListener('htmx:afterRequest', function (event) {
+            if (event.detail.verb === 'POST' && event.detail.path === '/addDatabase') {
+                closeModal(); // Close modal after successful submission
+                // Reload databases container automatically
+                htmx.trigger('#databases-container', 'load');
+            }
+        });
+
+        // Generate table from JSON data
+        document.addEventListener('htmx:afterOnLoad', function(event) {
+            if (event.target.id === 'databases-container') {
+                const data = JSON.parse(event.detail.xhr.responseText); // Parse le JSON
+                const table = generateTable(data);  // Génère le tableau HTML
+                document.getElementById('databases-container').innerHTML = table;  // Injecte le tableau dans le DOM
+            }
+        });
+
+        // Function to generate the HTML table
+function generateTable(data) {
+    let table = `
+        <table class="table-auto w-full border-collapse border border-gray-400">
+            <thead>
+                <tr class="bg-gray-200">
+                    <th class="border border-gray-300 px-4 py-2">Database Name</th>
+                    <th class="border border-gray-300 px-4 py-2">Type</th>
+                    <th class="border border-gray-300 px-4 py-2">Port</th>
+                    <th class="border border-gray-300 px-4 py-2">User Name</th>
+                    <th class="border border-gray-300 px-4 py-2">Password</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+    data.forEach(db => {
+        table += `
+            <tr>
+                <td class="border border-gray-300 px-4 py-2">${db.dbName}</td>
+                <td class="border border-gray-300 px-4 py-2">${db.dbType}</td>
+                <td class="border border-gray-300 px-4 py-2">${db.dbPort}</td>
+                <td class="border border-gray-300 px-4 py-2">${db.userName}</td>
+                <td class="border border-gray-300 px-4 py-2">${db.password}</td>
+            </tr>`;
+    });
+
+    table += '</tbody></table>';
+    return table;
+}
+
+    </script>
+</body>
+
+</html>
