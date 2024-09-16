@@ -42,7 +42,7 @@ func connectMainDB() error {
 
 // insertDatabaseInfo insère les informations de la nouvelle base de données dans mainDB
 func insertDatabaseInfo(dbName, dbType, dbPort, userName, password string) error {
-	query := `INSERT INTO databases (db_name, db_type, db_port, user_name, password, ) VALUES ($1, $2, $3, $4, $5)`
+	query := `INSERT INTO databases (dbName, dbType, dbPort, userName, password) VALUES ($1, $2, $3, $4, $5)`
 	_, err := mainDB.Exec(query, dbName, dbType, dbPort, userName, password)
 	if err != nil {
 		return fmt.Errorf("failed to insert database info: %v", err)
@@ -64,7 +64,7 @@ func countDatabases() (int, error) {
 // getAllDatabases retourne toutes les bases de données sous forme de slice de Database
 func getAllDatabases() ([]Database, error) {
 	var databases []Database
-	query := `SELECT db_name, db_type, db_port, user_name, password FROM databases`
+	query := `SELECT dbname, dbtype, dbport, username, password FROM databases`
 	rows, err := mainDB.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get databases: %v", err)
@@ -116,35 +116,30 @@ func main() {
 		return c.Render("templates/restores.html", fiber.Map{})
 	})
 
-	// Route pour vérifier la connexion et enregistrer la base de données
 	app.Post("/addDatabase", func(c *fiber.Ctx) error {
-		// Structure pour les informations de la base de données cible
-		var config struct {
-			DBType   string `json:"dbType"`
-			DBName   string `json:"dbName"`
-			DBPort   string `json:"dbPort"`
-			UserName string `json:"userName"`
-			Password string `json:"password"`
+		dbType := c.FormValue("dbType")
+		dbName := c.FormValue("dbName")
+		dbPort := c.FormValue("dbPort")
+		userName := c.FormValue("userName")
+		password := c.FormValue("password")
+
+		log.Printf("Received data: DBType=%s, DBName=%s, DBPort=%s, UserName=%s, Password=%s\n", dbType, dbName, dbPort, userName, password)
+
+		if dbType == "" || dbName == "" || dbPort == "" || userName == "" || password == "" {
+			return c.Status(400).JSON(fiber.Map{"status": "error", "message": "Missing required fields"})
 		}
 
-		// Parsing du corps de la requête JSON
-		if err := c.BodyParser(&config); err != nil {
-			return c.Status(400).SendString("Failed to parse JSON: " + err.Error())
-		}
-
-		// Vérification de la connexion à la base de données cible
-		dynamicDB, err := database.ConnectDynamicDB(config.DBType, config.DBName, config.DBPort, config.UserName, config.Password)
+		dynamicDB, err := database.ConnectDynamicDB(dbType, dbName, dbPort, userName, password)
 		if err != nil {
-			return c.Status(500).SendString("Failed to connect to dynamic database: " + err.Error())
+			return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Failed to connect to dynamic database: " + err.Error()})
 		}
 		defer dynamicDB.Close()
 
-		// Si la connexion est réussie, insérer les informations dans mainDB
-		if err := insertDatabaseInfo(config.DBName, config.DBType, config.DBPort, config.UserName, config.Password); err != nil {
-			return c.Status(500).SendString("Failed to insert database info: " + err.Error())
+		if err := insertDatabaseInfo(dbName, dbType, dbPort, userName, password); err != nil {
+			return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Failed to insert database info: " + err.Error()})
 		}
 
-		return c.SendString("Database connected and info saved successfully!")
+		return c.JSON(fiber.Map{"status": "success", "message": "Database connected and info saved successfully!"})
 	})
 
 	// Route pour récupérer toutes les bases de données en JSON
