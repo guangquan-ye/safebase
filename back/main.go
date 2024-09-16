@@ -66,6 +66,21 @@ func main() {
 		// Rend la page index.html
 		return c.Render("templates/index.html", fiber.Map{})
 	})
+	// // Servir les fichiers statiques (HTML, CSS, JS) depuis le dossier "front"
+	// app.Static("/", "../front")
+
+	// // Route pour servir une page HTML
+	// app.Get("/test", func(c *fiber.Ctx) error {
+	// 	return c.SendFile("../front/index.html")
+	// })
+	// app.Get("/test", func(c *fiber.Ctx) error {
+	// 	return c.SendFile("../front/index.html")
+	// })
+	// ================================Route en GET ===================================
+	// ================================================================================
+
+	// ================================================================================
+	// ================================Route en POST ===================================
 
 	// Route pour vérifier la connexion et enregistrer la base de données
 	app.Post("/addDatabase", func(c *fiber.Ctx) error {

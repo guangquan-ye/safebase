@@ -40,61 +40,85 @@ func ConnectDynamicDB(dbType, dbName, dbPort, userName, password string) (*sql.D
 	return db, nil
 }
 
+func InsertDumpRoute(dbType, dbName, dbPort, userName, password string) error {
+	// Vérifier le type de base de données
+	if dbType != "postgres" {
+		return fmt.Errorf("unsupported database type: %s", dbType)
+	}
+
+	// Connexion à PostgreSQL
+	connStr := fmt.Sprintf("host=localhost port=%s user=%s password=%s dbname=%s sslmode=disable", dbPort, userName, password, dbName)
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		return fmt.Errorf("failed to connect to the database: %v", err)
+	}
+	defer db.Close()
+
+	// Vérifier la connexion
+	if err := db.Ping(); err != nil {
+		return fmt.Errorf("failed to ping the database: %v", err)
+	}
+
+	// Exemple d'insertion dans une table fictive 'dumps'
+	_, err = db.Exec("INSERT INTO backup (dump_data) VALUES ($1)", "Sample dump data")
+	if err != nil {
+		return fmt.Errorf("failed to insert dump: %v", err)
+	}
+
+	return nil
+}
+
 func DumpBdd(dbType, dbName, dbPort, userName, password string) error {
 	var dumpCmd *exec.Cmd
-	fmt.Print("dbtype: ", dbType)
-	fmt.Print("dbName: ", dbName)
-	fmt.Print("dbPort: ", dbPort)
-	fmt.Print("userName: ", userName)
-	fmt.Print("password: ", password)
 	now := time.Now()
 	date := now.Format("02-01-2006_15:04:05")
 	fileName := dbName + "_" + date + ".sql"
+
+	// Définir le chemin de sauvegarde local
+	localPath := "dumpFiles/" + fileName // Sauvegarde locale
 
 	switch dbType {
 	case "postgres":
 		// Commande pour faire un dump PostgreSQL
 		dumpCmd = exec.Command(
 			"docker", "exec", dbName,
-			"sh", "-c", fmt.Sprintf(
-				"PGPASSWORD='%s' pg_dump -U %s -h localhost -p %s %s > /backups/%s",
-				password, userName, dbPort, dbName, fileName,
-			),
+			"pg_dump", "-U", userName, "-h", "localhost", "-p", dbPort, dbName,
 		)
 
 	case "mysql":
 		// Commande pour faire un dump MySQL
 		dumpCmd = exec.Command(
-			"docker", "exec", "huawey",
-			"sh", "-c", fmt.Sprintf(
-				"mysqldump -u %s -p%s %s > /backups/%s",
-				userName, password, dbName, fileName,
-			),
+			"docker", "exec", dbName,
+			"mysqldump", "-u", userName, "-p"+password, dbName,
 		)
 
 	default:
 		return fmt.Errorf("unsupported database type: %s", dbType)
 	}
 
-	// Créer le fichier de dump
-	outputFile, err := os.Create("dumpFiles/" + fileName)
+	// Créer le fichier localement
+	outputFile, err := os.Create(localPath)
 	if err != nil {
-		return fmt.Errorf("failed to create output file: %v", err)
+		return fmt.Errorf("failed to create local output file: %v", err)
 	}
 	defer outputFile.Close()
 
-	// Rediriger la sortie de la commande vers le fichier
+	// Rediriger la sortie de la commande vers le fichier local
 	dumpCmd.Stdout = outputFile
+
 	// Capturer la sortie d'erreur (stderr)
 	var stderr bytes.Buffer
 	dumpCmd.Stderr = &stderr
 
 	// Exécuter la commande
 	if err := dumpCmd.Run(); err != nil {
-		// Afficher l'erreur avec le contenu de stderr
 		return fmt.Errorf("failed to dump database: %v - %s", err, stderr.String())
 	}
 
-	fmt.Printf("Database %s dumped successfully!\n", dbName)
+	fmt.Printf("Database %s dumped successfully to %s!\n", dbName, localPath)
+
+	InsertDumpRoute(dbType, dbName, dbPort, userName, password)
+
 	return nil
+
 }
