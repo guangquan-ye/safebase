@@ -13,6 +13,15 @@ import (
 
 var mainDB *sql.DB
 
+// Structure représentant une base de données
+type Database struct {
+	DBName   string `json:"dbName"`
+	DBType   string `json:"dbType"`
+	DBPort   string `json:"dbPort"`
+	UserName string `json:"userName"`
+	Password string `json:"password"`
+}
+
 // connectMainDB établit une connexion à la base de données principale
 func connectMainDB() error {
 	connStr := "user=admin password=securepassword dbname=safebase sslmode=disable"
@@ -33,7 +42,7 @@ func connectMainDB() error {
 
 // insertDatabaseInfo insère les informations de la nouvelle base de données dans mainDB
 func insertDatabaseInfo(dbName, dbType, dbPort, userName, password string) error {
-	query := `INSERT INTO databases (db_name, db_type, user_name, password, db_port) VALUES ($1, $2, $3, $4, $5)`
+	query := `INSERT INTO databases (db_name, db_type, db_port, user_name, password, ) VALUES ($1, $2, $3, $4, $5)`
 	_, err := mainDB.Exec(query, dbName, dbType, dbPort, userName, password)
 	if err != nil {
 		return fmt.Errorf("failed to insert database info: %v", err)
@@ -52,14 +61,38 @@ func countDatabases() (int, error) {
 	return count, nil
 }
 
+// getAllDatabases retourne toutes les bases de données sous forme de slice de Database
+func getAllDatabases() ([]Database, error) {
+	var databases []Database
+	query := `SELECT db_name, db_type, db_port, user_name, password FROM databases`
+	rows, err := mainDB.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get databases: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var db Database
+		if err := rows.Scan(&db.DBName, &db.DBType, &db.DBPort, &db.UserName, &db.Password); err != nil {
+			return nil, fmt.Errorf("failed to scan row: %v", err)
+		}
+		databases = append(databases, db)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return databases, nil
+}
+
 func main() {
 	// Tenter la connexion à la base de données principale avant de démarrer l'application
-	// err := connectMainDB()
-	// if err != nil {
-	// 	log.Fatalf("Failed to connect to main database: %v", err)
-	// }
+	err := connectMainDB()
+	if err != nil {
+		log.Fatalf("Failed to connect to main database: %v", err)
+	}
 
-	log.Printf("APPLI LANCE")
 	// Créer une nouvelle instance de l'application Fiber
 	app := fiber.New()
 
@@ -67,26 +100,21 @@ func main() {
 		// Rend la page index.html
 		return c.Render("templates/index.html", fiber.Map{})
 	})
-	// // Servir les fichiers statiques (HTML, CSS, JS) depuis le dossier "front"
-	// app.Static("/", "../front")
 
-	// // Route pour servir une page HTML
-	// app.Get("/test", func(c *fiber.Ctx) error {
-	// 	return c.SendFile("../front/index.html")
-	// })
-
-	app.Get("/test", func(c *fiber.Ctx) error {
-		return c.SendString("Test route")
+	app.Get("/backups", func(c *fiber.Ctx) error {
+		// Rend la page backups.html
+		return c.Render("templates/backups.html", fiber.Map{})
 	})
 
-	// app.Get("/test", func(c *fiber.Ctx) error {
-	// 	return c.SendFile("../front/index.html")
-	// })
-	// ================================Route en GET ===================================
-	// ================================================================================
+	app.Get("/databases", func(c *fiber.Ctx) error {
+		// Rend la page databases.html
+		return c.Render("templates/databases.html", fiber.Map{})
+	})
 
-	// ================================================================================
-	// ================================Route en POST ===================================
+	app.Get("/restores", func(c *fiber.Ctx) error {
+		// Rend la page restores.html
+		return c.Render("templates/restores.html", fiber.Map{})
+	})
 
 	// Route pour vérifier la connexion et enregistrer la base de données
 	app.Post("/addDatabase", func(c *fiber.Ctx) error {
@@ -117,6 +145,16 @@ func main() {
 		}
 
 		return c.SendString("Database connected and info saved successfully!")
+	})
+
+	// Route pour récupérer toutes les bases de données en JSON
+	app.Get("/getDatabases", func(c *fiber.Ctx) error {
+		databases, err := getAllDatabases()
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": "Failed to retrieve databases"})
+		}
+
+		return c.JSON(databases)
 	})
 
 	// Route pour se connecter à une autre base de données dynamiquement
@@ -177,9 +215,5 @@ func main() {
 	})
 
 	// Démarrer le serveur après avoir défini toutes les routes
-	// log.Fatal(app.Listen(":8080"))
-	log.Fatal(app.Listen("0.0.0.0:3006"))
-
+	log.Fatal(app.Listen(":8080"))
 }
-
-// Continuer d'essayer de lancer le conteneur qui exploite mon binaire main

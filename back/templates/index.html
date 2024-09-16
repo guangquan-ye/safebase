@@ -1,25 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/htmx.org@2.0.2" integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" crossorigin="anonymous"></script>
-
-
+    <script src="https://unpkg.com/htmx.org@2.0.2"
+        integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ"
+        crossorigin="anonymous"></script>
     <title>Safebase</title>
 </head>
-<body>
-    <h1 class="text-3xl font-bold underline">
-        Hello world!
-    </h1>
 
-    <section>
-        <div>
-        <p>Databases : <span hx-get="/getDbCount"
-          hx-trigger="load"> </span></p> 
+<body>
+    <section class="flex flex-row">
+        <nav class="w-1/5 h-screen bg-blue-100 flex">
+            <ul class="flex flex-col m-5">
+                <li class="m-5">
+                    <a href="/" class="text-blue-500 underline">Dashboard</a>
+                </li>
+                <li class="m-5">
+                    <a href="/databases" class="text-blue-500 underline">Databases</a>
+                </li>
+                <li class="m-5">
+                    <a href="/backups" class="text-blue-500 underline">Backups</a>
+                </li>
+                <li class="m-5">
+                    <a href="/restores" class="text-blue-500 underline">Restores</a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="w-4/5 p-5">
+            <h1 class="text-3xl font-bold underline">
+                Welcome to Safebase <span hx-get="/getDbCount" hx-trigger="load"></span>
+            </h1>
+
+            <div class=" flex flex-row justify-around m-5">
+                <div class="flex flex-col w-1/6 h-28 justify-around m-5 px-2 text-2xl border-2">
+                    <p>Databases </p>
+                    <span class="flex justify-end items-end text-3xl font-bold" hx-get="/getDbCount"
+                        hx-trigger="load"></span>
+                </div>
+                <div class="flex flex-col w-1/6 h-28 justify-around m-5 px-2 text-2xl border-2">
+                    <p>Backups </p>
+                    <span class="flex justify-end" hx-get="/getBuCount" hx-trigger="load"></span>
+                </div>
+                <div class="flex flex-col w-1/6 h-28 justify-around m-5 px-2 text-2xl border-2">
+                    <p>Restores </p>
+                    <span class="flex justify-end" hx-get="/getReCount" hx-trigger="load"></span>
+                </div>
+            </div>
         </div>
     </section>
-    
 </body>
+
 </html>
