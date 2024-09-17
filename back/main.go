@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"safebase/database"
+	"strconv"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gofiber/fiber/v2"
@@ -13,8 +14,9 @@ import (
 
 var mainDB *sql.DB
 
-// Structure représentant une base de données
+// Database structure representing a database
 type Database struct {
+	DBId     int    `json:"id"`
 	DBName   string `json:"dbName"`
 	DBType   string `json:"dbType"`
 	DBPort   string `json:"dbPort"`
@@ -22,7 +24,16 @@ type Database struct {
 	Password string `json:"password"`
 }
 
-// connectMainDB établit une connexion à la base de données principale
+// Common structure for DB connection
+type DBConnection struct {
+	DBType   string `json:"dbType"`
+	DBName   string `json:"dbName"`
+	DBPort   string `json:"dbPort"`
+	UserName string `json:"userName"`
+	Password string `json:"password"`
+}
+
+// Function to connect to the main database
 func connectMainDB() error {
 	connStr := "user=admin password=securepassword dbname=safebase sslmode=disable"
 	var err error
@@ -31,7 +42,6 @@ func connectMainDB() error {
 		return fmt.Errorf("unable to connect to main database: %v", err)
 	}
 
-	// Vérifiez que la connexion est bien établie
 	if err := mainDB.Ping(); err != nil {
 		return fmt.Errorf("unable to ping main database: %v", err)
 	}
@@ -40,17 +50,17 @@ func connectMainDB() error {
 	return nil
 }
 
-// insertDatabaseInfo insère les informations de la nouvelle base de données dans mainDB
-func insertDatabaseInfo(dbName, dbType, dbPort, userName, password string) error {
+// Insert new database info into mainDB
+func insertDatabaseInfo(db Database) error {
 	query := `INSERT INTO databases (dbName, dbType, dbPort, userName, password) VALUES ($1, $2, $3, $4, $5)`
-	_, err := mainDB.Exec(query, dbName, dbType, dbPort, userName, password)
+	_, err := mainDB.Exec(query, db.DBName, db.DBType, db.DBPort, db.UserName, db.Password)
 	if err != nil {
 		return fmt.Errorf("failed to insert database info: %v", err)
 	}
 	return nil
 }
 
-// countDatabases retourne le nombre total d'entrées dans la table databases
+// Count total databases
 func countDatabases() (int, error) {
 	var count int
 	query := `SELECT COUNT(*) FROM databases`
@@ -61,10 +71,10 @@ func countDatabases() (int, error) {
 	return count, nil
 }
 
-// getAllDatabases retourne toutes les bases de données sous forme de slice de Database
+// Retrieve all databases from the main DB
 func getAllDatabases() ([]Database, error) {
 	var databases []Database
-	query := `SELECT dbname, dbtype, dbport, username, password FROM databases`
+	query := `SELECT id, dbname, dbtype, dbport, username, password FROM databases`
 	rows, err := mainDB.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get databases: %v", err)
@@ -73,7 +83,7 @@ func getAllDatabases() ([]Database, error) {
 
 	for rows.Next() {
 		var db Database
-		if err := rows.Scan(&db.DBName, &db.DBType, &db.DBPort, &db.UserName, &db.Password); err != nil {
+		if err := rows.Scan(&db.DBId, &db.DBName, &db.DBType, &db.DBPort, &db.UserName, &db.Password); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %v", err)
 		}
 		databases = append(databases, db)
@@ -86,129 +96,133 @@ func getAllDatabases() ([]Database, error) {
 	return databases, nil
 }
 
-func main() {
-	// Tenter la connexion à la base de données principale avant de démarrer l'application
-	err := connectMainDB()
+// Delete database by ID
+func deleteDatabase(id int) error {
+	query := `DELETE FROM databases WHERE id = $1`
+	_, err := mainDB.Exec(query, id)
 	if err != nil {
+		return fmt.Errorf("failed to delete database: %v", err)
+	}
+	return nil
+}
+
+// Unified error response handler
+func errorResponse(c *fiber.Ctx, code int, message string) error {
+	return c.Status(code).JSON(fiber.Map{"status": "error", "message": message})
+}
+
+func main() {
+	// Connect to the main database
+	if err := connectMainDB(); err != nil {
 		log.Fatalf("Failed to connect to main database: %v", err)
 	}
 
-	// Créer une nouvelle instance de l'application Fiber
+	// Initialize Fiber app
 	app := fiber.New()
 
+	// Basic routes for rendering pages
 	app.Get("/", func(c *fiber.Ctx) error {
-		// Rend la page index.html
 		return c.Render("templates/index.html", fiber.Map{})
 	})
 
 	app.Get("/backups", func(c *fiber.Ctx) error {
-		// Rend la page backups.html
 		return c.Render("templates/backups.html", fiber.Map{})
 	})
 
 	app.Get("/databases", func(c *fiber.Ctx) error {
-		// Rend la page databases.html
 		return c.Render("templates/databases.html", fiber.Map{})
 	})
 
 	app.Get("/restores", func(c *fiber.Ctx) error {
-		// Rend la page restores.html
 		return c.Render("templates/restores.html", fiber.Map{})
 	})
 
+	// Add database route
 	app.Post("/addDatabase", func(c *fiber.Ctx) error {
-		dbType := c.FormValue("dbType")
-		dbName := c.FormValue("dbName")
-		dbPort := c.FormValue("dbPort")
-		userName := c.FormValue("userName")
-		password := c.FormValue("password")
-
-		log.Printf("Received data: DBType=%s, DBName=%s, DBPort=%s, UserName=%s, Password=%s\n", dbType, dbName, dbPort, userName, password)
-
-		if dbType == "" || dbName == "" || dbPort == "" || userName == "" || password == "" {
-			return c.Status(400).JSON(fiber.Map{"status": "error", "message": "Missing required fields"})
+		var db Database
+		if err := c.BodyParser(&db); err != nil {
+			return errorResponse(c, 400, "Invalid input")
 		}
 
-		dynamicDB, err := database.ConnectDynamicDB(dbType, dbName, dbPort, userName, password)
+		log.Printf("Received data: DBType=%s, DBName=%s, DBPort=%s, UserName=%s\n", db.DBType, db.DBName, db.DBPort, db.UserName)
+
+		dynamicDB, err := database.ConnectDynamicDB(db.DBType, db.DBName, db.DBPort, db.UserName, db.Password)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Failed to connect to dynamic database: " + err.Error()})
+			return errorResponse(c, 500, "Failed to connect to dynamic database: "+err.Error())
 		}
 		defer dynamicDB.Close()
 
-		if err := insertDatabaseInfo(dbName, dbType, dbPort, userName, password); err != nil {
-			return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Failed to insert database info: " + err.Error()})
+		if err := insertDatabaseInfo(db); err != nil {
+			return errorResponse(c, 500, "Failed to insert database info: "+err.Error())
 		}
 
 		return c.JSON(fiber.Map{"status": "success", "message": "Database connected and info saved successfully!"})
 	})
 
-	// Route pour récupérer toutes les bases de données en JSON
+	// Route to get all databases
 	app.Get("/getDatabases", func(c *fiber.Ctx) error {
 		databases, err := getAllDatabases()
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": "Failed to retrieve databases"})
+			return errorResponse(c, 500, "Failed to retrieve databases")
 		}
-
 		return c.JSON(databases)
 	})
 
-	// Route pour se connecter à une autre base de données dynamiquement
+	// Dynamic connection route
 	app.Post("/connexion", func(c *fiber.Ctx) error {
-		// Récupérer les informations de la base de données cible et de l'utilisateur
-		var config struct {
-			DBType   string `json:"dbType"`
-			DBName   string `json:"dbName"`
-			DBPort   string `json:"dbPort"`
-			UserName string `json:"userName"`
-			Password string `json:"password"`
-		}
-
+		var config DBConnection
 		if err := c.BodyParser(&config); err != nil {
-			return c.Status(400).SendString("Failed to parse JSON: " + err.Error())
+			return errorResponse(c, 400, "Failed to parse JSON: "+err.Error())
 		}
 
-		// Se connecter dynamiquement à la base de données cible
 		dynamicDB, err := database.ConnectDynamicDB(config.DBType, config.DBName, config.DBPort, config.UserName, config.Password)
 		if err != nil {
-			return c.Status(500).SendString("Failed to connect to dynamic database: " + err.Error())
+			return errorResponse(c, 500, "Failed to connect to dynamic database: "+err.Error())
 		}
 		defer dynamicDB.Close()
 
 		return c.SendString("Connected to the database successfully!")
 	})
 
-	// Route pour récupérer le nombre total d'entrées dans la table databases
+	// Get total count of databases
 	app.Get("/getDbCount", func(c *fiber.Ctx) error {
 		count, err := countDatabases()
 		if err != nil {
-			return c.Status(500).SendString("Failed to count databases: " + err.Error())
+			return errorResponse(c, 500, "Failed to count databases: "+err.Error())
 		}
 
 		return c.SendString(fmt.Sprintf("%d", count))
 	})
 
-	// Route pour faire un dump de la base de données
+	// Dump database route
 	app.Post("/dump", func(c *fiber.Ctx) error {
-		var dataDump struct {
-			DBType   string `json:"dbType"`
-			DBName   string `json:"dbName"`
-			DBPort   string `json:"dbPort"`
-			UserName string `json:"userName"`
-			Password string `json:"password"`
+		var dataDump DBConnection
+		if err := c.BodyParser(&dataDump); err != nil {
+			return errorResponse(c, 400, "Failed to parse JSON: "+err.Error())
 		}
 
-		if err := c.BodyParser(&dataDump); err != nil {
-			return c.Status(400).SendString("Failed to parse JSON: " + err.Error())
-		}
-		// Récupérer les informations de la base de données cible et de l'utilisateur
-		err := database.DumpBdd(dataDump.DBType, dataDump.DBName, dataDump.DBPort, dataDump.UserName, dataDump.Password)
-		if err != nil {
-			return c.Status(500).SendString("Failed to dump Database: " + err.Error())
+		if err := database.DumpBdd(dataDump.DBType, dataDump.DBName, dataDump.DBPort, dataDump.UserName, dataDump.Password); err != nil {
+			return errorResponse(c, 500, "Failed to dump Database: "+err.Error())
 		}
 
 		return c.SendString("Dumped the database successfully!")
 	})
 
-	// Démarrer le serveur après avoir défini toutes les routes
+	// Delete database by ID route
+	app.Delete("/deleteDatabase/:id", func(c *fiber.Ctx) error {
+		idStr := c.Params("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			return errorResponse(c, 400, "Invalid database ID")
+		}
+
+		if err := deleteDatabase(id); err != nil {
+			return errorResponse(c, 500, "Failed to delete database: "+err.Error())
+		}
+
+		return c.SendString("Database deleted successfully!")
+	})
+
+	// Start the Fiber app
 	log.Fatal(app.Listen(":8080"))
 }
