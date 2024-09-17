@@ -54,11 +54,12 @@ func countDatabases() (int, error) {
 
 func main() {
 	// Tenter la connexion à la base de données principale avant de démarrer l'application
-	err := connectMainDB()
-	if err != nil {
-		log.Fatalf("Failed to connect to main database: %v", err)
-	}
+	// err := connectMainDB()
+	// if err != nil {
+	// 	log.Fatalf("Failed to connect to main database: %v", err)
+	// }
 
+	log.Printf("APPLI LANCE")
 	// Créer une nouvelle instance de l'application Fiber
 	app := fiber.New()
 
@@ -73,6 +74,11 @@ func main() {
 	// app.Get("/test", func(c *fiber.Ctx) error {
 	// 	return c.SendFile("../front/index.html")
 	// })
+
+	app.Get("/test", func(c *fiber.Ctx) error {
+		return c.SendString("Test route")
+	})
+
 	// app.Get("/test", func(c *fiber.Ctx) error {
 	// 	return c.SendFile("../front/index.html")
 	// })
@@ -171,5 +177,9 @@ func main() {
 	})
 
 	// Démarrer le serveur après avoir défini toutes les routes
-	log.Fatal(app.Listen(":8080"))
+	// log.Fatal(app.Listen(":8080"))
+	log.Fatal(app.Listen("0.0.0.0:3006"))
+
 }
+
+// Continuer d'essayer de lancer le conteneur qui exploite mon binaire main

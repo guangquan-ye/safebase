@@ -10,7 +10,9 @@ services:
       - "5432:5432"
     volumes:
       - safebase_data:/var/lib/postgresql/data
-      - dumpFiles:/backups  
+      # - dumpFiles:/backups  
+      - dumpFiles:/docker_dumpFiles  
+
 
   apple:
     image: postgres:15
