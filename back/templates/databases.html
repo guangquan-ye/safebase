@@ -149,8 +149,7 @@
                             <th class="border border-gray-300 px-4 py-2">Database Name</th>
                             <th class="border border-gray-300 px-4 py-2">Type</th>
                             <th class="border border-gray-300 px-4 py-2">Port</th>
-                            <th class="border border-gray-300 px-4 py-2">User Name</th>
-                            <th class="border border-gray-300 px-4 py-2">Password</th>
+                            <th class="border border-gray-300 px-4 py-2">Action</th>
                         </tr>
                     </thead>
                     <tbody>`;
@@ -161,8 +160,11 @@
                         <td class="border border-gray-300 px-4 py-2">${db.dbName}</td>
                         <td class="border border-gray-300 px-4 py-2">${db.dbType}</td>
                         <td class="border border-gray-300 px-4 py-2">${db.dbPort}</td>
-                        <td class="border border-gray-300 px-4 py-2">${db.userName}</td>
-                        <td class="border border-gray-300 px-4 py-2">${db.password}</td>
+                        <td class="border border-gray-300 px-4 py-2">
+                            <button class="bg-blue-500 text-white px-2 py-1 rounded">Backup</button>
+                            <button class="bg-red-500 text-white px-2 py-1 rounded">Delete</button>
+                        </td>
+                        
                     </tr>`;
             });
 
