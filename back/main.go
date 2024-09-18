@@ -35,7 +35,8 @@ type DBConnection struct {
 
 // Function to connect to the main database
 func connectMainDB() error {
-	connStr := "user=admin password=securepassword dbname=safebase sslmode=disable"
+	// connStr := "user=admin password=securepassword dbname=apple sslmode=disable"
+	connStr := "user=admin password=securepassword dbname=safebase host=safebase port=5432 sslmode=disable"
 	var err error
 	mainDB, err = sql.Open("postgres", connStr)
 	if err != nil {
@@ -224,5 +225,6 @@ func main() {
 	})
 
 	// Start the Fiber app
-	log.Fatal(app.Listen(":8080"))
+	// Port a changer avant de build le binaire pour dockeriser l'appli 8080 pour localhost et 3006
+	log.Fatal(app.Listen(":3006"))
 }

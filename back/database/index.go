@@ -142,6 +142,6 @@ func DumpBdd(dbType, dbName, dbPort, userName, password string) error {
 
 }
 
-func addBdd(dbType, dbName, dbPort, userName, password string) error {
-	return nil
-}
+// func addBdd(dbType, dbName, dbPort, userName, password string) error {
+// 	return nil
+// }
