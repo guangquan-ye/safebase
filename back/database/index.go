@@ -85,13 +85,13 @@ func DumpBdd(dbType, dbName, dbPort, userName, password string) error {
 		// 	"pg_dump", "-U", userName, "-h", "localhost", "-p", dbPort, dbName,
 		// )
 		dumpCmd := fmt.Sprintf(
-			"PGPASSWORD=%s pg_dump -U %s -h %s -p %s %s > /path/to/backup/%s.sql",
+			"PGPASSWORD=%s pg_dump -U %s -h %s -p %s %s > %s.sql",
 			password,
 			userName,
-			"localhost", // ou l'IP/hostname du conteneur PostgreSQL
+			dbName, // ou l'IP/hostname du conteneur PostgreSQL
 			dbPort,
 			dbName,
-			dbName,
+			localPath,
 		)
 		cmd := exec.Command("/bin/sh", "-c", dumpCmd)
 
