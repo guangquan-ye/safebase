@@ -2,12 +2,12 @@ services:
   app:
     build:
       context: ../
-      dockerfile: docker/Dockerfile  # Nom du Dockerfile
+      dockerfile: docker/Dockerfile
     container_name: go_app
     ports:
       - "3006:3006"
     volumes:
-      - dumpFiles:/app/docker_dumpFiles   # Volume pour stocker les dumps
+      - ../dumpFiles:/app/docker_dumpFiles   # Partage pour stocker les dumps localement
     depends_on:
       - safebase
       - apple
@@ -25,7 +25,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - safebase_data:/var/lib/postgresql/safebase_data
+      - safebase_data:/var/lib/postgresql/data  # Volume pour la persistance des données
+      - dumpFiles:/shared_data  # Volume partagé pour les dumps
 
   # Autres bases PostgreSQL
   apple:
@@ -38,7 +39,8 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - apple_data:/var/lib/postgresql/apple_data"
+      - apple_data:/var/lib/postgresql/data  # Volume pour la persistance des données
+      - dumpFiles:/shared_data  # Volume partagé pour les dumps
 
   blizzard:
     image: postgres:15
@@ -50,7 +52,8 @@ services:
     ports:
       - "5434:5432"
     volumes:
-      - blizzard_data:/var/lib/postgresql/blizzard_data"
+      - blizzard_data:/var/lib/postgresql/data  # Volume pour la persistance des données
+      - dumpFiles:/shared_data  # Volume partagé pour les dumps
 
   # Base de données MySQL
   huawey:
@@ -64,10 +67,12 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - huawey_data:/var/lib/mysql/huawey_data"
+      - huawey_data:/var/lib/mysql  # Volume pour la persistance des données
+      - dumpFiles:/shared_data  # Volume partagé pour les dumps
 
 volumes:
-  safebase_data:
-  huawey_data:
-  apple_data:
-  blizzard_data:
+  safebase_data:  # Volume persistant pour la base de données safebase
+  apple_data:     # Volume persistant pour la base de données apple
+  blizzard_data:  # Volume persistant pour la base de données blizzard
+  huawey_data:    # Volume persistant pour la base de données huawey
+  dumpFiles:      # Volume partagé pour les dumps

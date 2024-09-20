@@ -51,7 +51,7 @@ WORKDIR /app
 
 # Copier le code source dans le conteneur
 COPY . .
-COPY --from=builder /app/main /app/main
+# COPY --from=builder /app/main /app/main
 
 # RUN chmod +x ./main
 # RUN chmod +x ./app/main
