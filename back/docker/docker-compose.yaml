@@ -25,7 +25,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - safebase_data:/var/lib/postgresql/data
+      - safebase_data:/var/lib/postgresql/safebase_data
 
   # Autres bases PostgreSQL
   apple:
@@ -38,7 +38,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - apple_data:/var/lib/postgresql/data"
+      - apple_data:/var/lib/postgresql/apple_data"
 
   blizzard:
     image: postgres:15
@@ -50,7 +50,7 @@ services:
     ports:
       - "5434:5432"
     volumes:
-      - blizzard_data:/var/lib/postgresql/data"
+      - blizzard_data:/var/lib/postgresql/blizzard_data"
 
   # Base de données MySQL
   huawey:
@@ -64,11 +64,10 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - huawey_data:/var/lib/mysql"
+      - huawey_data:/var/lib/mysql/huawey_data"
 
 volumes:
   safebase_data:
   huawey_data:
   apple_data:
   blizzard_data:
-  dumpFiles:
