@@ -8,6 +8,8 @@ services:
       - "3006:3006"
     volumes:
       - ../dumpFiles:/app/docker_dumpFiles   # Partage pour stocker les dumps localement
+      - ../templates:/app/templates
+
     depends_on:
       - safebase
       - apple
@@ -75,4 +77,5 @@ volumes:
   apple_data:     # Volume persistant pour la base de données apple
   blizzard_data:  # Volume persistant pour la base de données blizzard
   huawey_data:    # Volume persistant pour la base de données huawey
+  templates:      
   dumpFiles:      # Volume partagé pour les dumps
