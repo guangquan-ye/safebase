@@ -41,74 +41,75 @@ func ConnectDynamicDB(dbType, dbName, dbPort, userName, password string) (*sql.D
 }
 
 func InsertDumpRoute(dbType, dbName, dbPort, userName, password string) error {
-	// Vérifier le type de base de données
-	if dbType != "postgres" {
-		return fmt.Errorf("unsupported database type: %s", dbType)
-	}
+	// // Vérifier le type de base de données
+	// if dbType != "postgres" {
+	// 	return fmt.Errorf("unsupported database type: %s", dbType)
+	// }
 
-	// Connexion à PostgreSQL
-	connStr := fmt.Sprintf("host=localhost port=%s user=%s password=%s dbname=%s sslmode=disable", dbPort, userName, password, dbName)
-	db, err := sql.Open("postgres", connStr)
-	if err != nil {
-		return fmt.Errorf("failed to connect to the database: %v", err)
-	}
-	defer db.Close()
+	// // Connexion à PostgreSQL
+	// connStr := fmt.Sprintf("host=localhost port=%s user=%s password=%s dbname=%s sslmode=disable", dbPort, userName, password, dbName)
+	// db, err := sql.Open("postgres", connStr)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to connect to the database: %v", err)
+	// }
+	// defer db.Close()
 
-	// Vérifier la connexion
-	if err := db.Ping(); err != nil {
-		return fmt.Errorf("failed to ping the database: %v", err)
-	}
+	// // Vérifier la connexion
+	// if err := db.Ping(); err != nil {
+	// 	return fmt.Errorf("failed to ping the database: %v", err)
+	// }
 
-	// Exemple d'insertion dans une table fictive 'dumps'
-	_, err = db.Exec("INSERT INTO backup (dump_data) VALUES ($1)", "Sample dump data")
-	if err != nil {
-		return fmt.Errorf("failed to insert dump: %v", err)
-	}
+	// // Exemple d'insertion dans une table fictive 'dumps'
+	// _, err = db.Exec("INSERT INTO backup (dump_data) VALUES ($1)", "Sample dump data")
+	// if err != nil {
+	// 	return fmt.Errorf("failed to insert dump: %v", err)
+	// }
 
 	return nil
 }
 
 func DumpBdd(dbType, dbName, dbPort, userName, password string) error {
-	var dumpCmd *exec.Cmd
+
 	now := time.Now()
 	date := now.Format("02-01-2006_15:04:05")
-	fileName := dbName + "_" + date + ".sql"
+	fileName := fmt.Sprintf("%s_%s.sql", dbName, date)
 
 	// Définir le chemin de sauvegarde local
-	localPath := "dumpFiles/" + fileName // Sauvegarde locale
+	localPath := "/app/docker_dumpFiles/" + fileName
+
+	var dumpCmd *exec.Cmd
 
 	switch dbType {
 	case "postgres":
-		// Commande pour faire un dump PostgreSQL
-		// dumpCmd = exec.Command(
-		// 	"docker", "exec", dbName,
-		// 	"pg_dump", "-U", userName, "-h", "localhost", "-p", dbPort, dbName,
-		// )
-		dumpCmd := fmt.Sprintf(
-			// "PGPASSWORD=%s pg_dump -U %s -h %s -p %s %s > %s.sql",
-			"pg_dump -U %s -W -F t %s > %s.sql",
 
-			userName,
-			dbName, // ou l'IP/hostname du conteneur PostgreSQL
-			localPath,
-		)
-		cmd := exec.Command("/bin/sh", "-c", dumpCmd)
-
-		// Capturer la sortie de l'exécution
-		output, err := cmd.CombinedOutput()
-		if err != nil {
-			fmt.Printf("Erreur lors de l'exécution du dump: %s\n", err)
-			return nil
+		var host string
+		switch dbName {
+		case "safebase":
+			host = "safebase"
+		case "apple":
+			host = "apple"
+		case "blizzard":
+			host = "blizzard"
 		}
 
-		fmt.Printf("Dump réussi: %s\n", output)
+		dumpCmdStr := fmt.Sprintf(
+			"PGPASSWORD=%s pg_dump -U %s -h %s -p 5432 %s",
+			password,
+			userName,
+			host,
+			dbName,
+		)
+		dumpCmd = exec.Command("/bin/sh", "-c", dumpCmdStr)
 
 	case "mysql":
-		// Commande pour faire un dump MySQL
-		dumpCmd = exec.Command(
-			"docker", "exec", dbName,
-			"mysqldump", "-u", userName, "-p"+password, dbName,
+		dumpCmdStr := fmt.Sprintf(
+			"mysqldump -h huawey -u %s -p%s %s",
+			userName,
+			password,
+			dbName,
 		)
+
+		dumpCmd = exec.Command("/bin/sh", "-c", dumpCmdStr)
 
 	default:
 		return fmt.Errorf("unsupported database type: %s", dbType)
@@ -135,10 +136,12 @@ func DumpBdd(dbType, dbName, dbPort, userName, password string) error {
 
 	fmt.Printf("Database %s dumped successfully to %s!\n", dbName, localPath)
 
-	InsertDumpRoute(dbType, dbName, dbPort, userName, password)
+	// // Insertion de la route de dump (peut être mise à jour selon le besoin)
+	// if err := InsertDumpRoute(dbType, dbName, dbPort, userName, password); err != nil {
+	// 	return fmt.Errorf("failed to insert dump route: %v", err)
+	// }
 
 	return nil
-
 }
 
 // func addBdd(dbType, dbName, dbPort, userName, password string) error {

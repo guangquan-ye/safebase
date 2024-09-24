@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 	"safebase/database"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -62,13 +63,15 @@ func main() {
 	// Créer une nouvelle instance de l'application Fiber
 	app := fiber.New()
 
+	// Servir les fichiers statiques depuis le dossier "templates"
+	// Ici, "/" signifie que toute route sera recherchée dans ce dossier
 	app.Get("/", func(c *fiber.Ctx) error {
 		// Rend la page index.html
-		return c.Render("templates/index.html", fiber.Map{})
+		return c.Render("./templates/index.html", fiber.Map{})
 	})
 
-	// // Servir les fichiers statiques (HTML, CSS, JS) depuis le dossier "front"
-	// app.Static("/", "../front")
+	cwd, _ := os.Getwd()                    // Obtenir le répertoire courant
+	log.Println("Répertoire courant:", cwd) // Afficher le répertoire courant
 
 	// Route pour servir une page HTML
 	app.Get("/test", func(c *fiber.Ctx) error {
