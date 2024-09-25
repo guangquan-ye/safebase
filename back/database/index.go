@@ -80,10 +80,29 @@ func DumpBdd(dbType, dbName, dbPort, userName, password string) error {
 	switch dbType {
 	case "postgres":
 		// Commande pour faire un dump PostgreSQL
-		dumpCmd = exec.Command(
-			"docker", "exec", dbName,
-			"pg_dump", "-U", userName, "-h", "localhost", "-p", dbPort, dbName,
+		// dumpCmd = exec.Command(
+		// 	"docker", "exec", dbName,
+		// 	"pg_dump", "-U", userName, "-h", "localhost", "-p", dbPort, dbName,
+		// )
+		dumpCmd := fmt.Sprintf(
+			"PGPASSWORD=%s pg_dump -U %s -h %s -p %s %s > /path/to/backup/%s.sql",
+			password,
+			userName,
+			"localhost", // ou l'IP/hostname du conteneur PostgreSQL
+			dbPort,
+			dbName,
+			dbName,
 		)
+		cmd := exec.Command("/bin/sh", "-c", dumpCmd)
+
+		// Capturer la sortie de l'exécution
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			fmt.Printf("Erreur lors de l'exécution du dump: %s\n", err)
+			return nil
+		}
+
+		fmt.Printf("Dump réussi: %s\n", output)
 
 	case "mysql":
 		// Commande pour faire un dump MySQL
@@ -122,3 +141,7 @@ func DumpBdd(dbType, dbName, dbPort, userName, password string) error {
 	return nil
 
 }
+
+// func addBdd(dbType, dbName, dbPort, userName, password string) error {
+// 	return nil
+// }

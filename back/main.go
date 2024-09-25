@@ -35,7 +35,7 @@ type DBConnection struct {
 
 // Function to connect to the main database
 func connectMainDB() error {
-	connStr := "user=admin password=securepassword dbname=safebase sslmode=disable"
+	connStr := "user=admin password=securepassword dbname=safebase host=safebase port=5432 sslmode=disable"
 	var err error
 	mainDB, err = sql.Open("postgres", connStr)
 	if err != nil {
@@ -201,8 +201,9 @@ func main() {
 			return errorResponse(c, 400, "Failed to parse JSON: "+err.Error())
 		}
 
-		if err := database.DumpBdd(dataDump.DBType, dataDump.DBName, dataDump.DBPort, dataDump.UserName, dataDump.Password); err != nil {
-			return errorResponse(c, 500, "Failed to dump Database: "+err.Error())
+		err := database.DumpBdd(dataDump.DBType, dataDump.DBName, dataDump.DBPort, dataDump.UserName, dataDump.Password)
+		if err != nil {
+			return c.Status(500).SendString("Failed to dump Database: " + err.Error())
 		}
 
 		return c.SendString("Dumped the database successfully!")

@@ -1,4 +1,20 @@
 services:
+  app:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile  # Nom du Dockerfile
+    container_name: go_app
+    ports:
+      - "3006:3006"
+    volumes:
+      - dumpFiles:/app/docker_dumpFiles   # Volume pour stocker les dumps
+    depends_on:
+      - safebase
+      - apple
+      - blizzard
+      - huawey
+
+  # Base de données PostgreSQL principale
   safebase:
     image: postgres:15
     container_name: safebase
@@ -10,8 +26,8 @@ services:
       - "5432:5432"
     volumes:
       - safebase_data:/var/lib/postgresql/data
-      - dumpFiles:/backups  
 
+  # Autres bases PostgreSQL
   apple:
     image: postgres:15
     container_name: apple
@@ -22,8 +38,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - apple_data:/var/lib/postgresql/data
-      - dumpFiles:/backups  
+      - apple_data:/var/lib/postgresql/data"
 
   blizzard:
     image: postgres:15
@@ -35,9 +50,9 @@ services:
     ports:
       - "5434:5432"
     volumes:
-      - blizzard_data:/var/lib/postgresql/data
-      - dumpFiles:/backups  
+      - blizzard_data:/var/lib/postgresql/data"
 
+  # Base de données MySQL
   huawey:
     image: mysql:8
     container_name: huawey
@@ -49,8 +64,7 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - huawey_data:/var/lib/mysql
-      - dumpFiles:/backups  
+      - huawey_data:/var/lib/mysql"
 
 volumes:
   safebase_data:
