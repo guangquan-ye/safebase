@@ -8,10 +8,10 @@ COPY . .
 RUN GOARCH=arm64 GOOS=linux go build -o main .
 
 # Étape finale avec une version plus récente d'Alpine
-FROM arm64v8/alpine:3.18
+FROM arm64v8/ubuntu:20.04
 
 # Installer les clients PostgreSQL et MySQL
-RUN apk update && apk add --no-cache postgresql15-client mysql-client
+RUN apt-get update && apt-get install -y postgresql-client mysql-client
 
 WORKDIR /app
 COPY --from=builder /app/main .

@@ -82,21 +82,21 @@ func DumpBdd(dbType, dbName, dbPort, userName, password string) error {
 	switch dbType {
 	case "postgres":
 
-		var host string
-		switch dbName {
-		case "safebase":
-			host = "safebase"
-		case "apple":
-			host = "apple"
-		case "blizzard":
-			host = "blizzard"
-		}
+		// var host string
+		// switch dbName {
+		// case "safebase":
+		// 	host = "safebase"
+		// case "apple":
+		// 	host = "apple"
+		// case "blizzard":
+		// 	host = "blizzard"
+		// }
 
 		dumpCmdStr := fmt.Sprintf(
 			"PGPASSWORD=%s pg_dump -U %s -h %s -p 5432 %s",
 			password,
 			userName,
-			host,
+			dbName,
 			dbName,
 		)
 		dumpCmd = exec.Command("/bin/sh", "-c", dumpCmdStr)
@@ -145,5 +145,15 @@ func DumpBdd(dbType, dbName, dbPort, userName, password string) error {
 }
 
 // func addBdd(dbType, dbName, dbPort, userName, password string) error {
+
+// 	dumpCmdStr := fmt.Sprintf(
+// 		"PGPASSWORD=%s pg_dump -U %s -h %s -p 5432 %s",
+// 		password,
+// 		userName,
+// 		host,
+// 		dbName,
+// 	)
+// 	dumpCmd = exec.Command("/bin/sh", "-c", dumpCmdStr)
+
 // 	return nil
 // }
