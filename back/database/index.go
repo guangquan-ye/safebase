@@ -21,7 +21,7 @@ func ConnectDynamicDB(dbType, dbName, dbPort, userName, password string) (*sql.D
 		connStr = fmt.Sprintf("user=%s password=%s dbname=%s port=%s sslmode=disable", userName, password, dbName, dbPort)
 
 	case "mysql":
-		connStr = fmt.Sprintf("%s:%s@tcp(127.0.0.1:%s)/%s", userName, password, dbPort, dbName)
+		connStr = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", userName, password, dbPort, dbPort, dbName)
 
 	default:
 		return nil, fmt.Errorf("unsupported database type: %s", dbType)
