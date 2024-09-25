@@ -34,7 +34,8 @@ func connectMainDB() error {
 
 // insertDatabaseInfo insère les informations de la nouvelle base de données dans mainDB
 func insertDatabaseInfo(dbName, dbType, dbPort, userName, password string) error {
-	query := `INSERT INTO databases (db_name, db_type, user_name, password, db_port) VALUES ($1, $2, $3, $4, $5)`
+
+	query := `INSERT INTO databases (db_name, db_type, db_port, user_name, password) VALUES ($1, $2, $3, $4, $5)`
 	_, err := mainDB.Exec(query, dbName, dbType, dbPort, userName, password)
 	if err != nil {
 		return fmt.Errorf("failed to insert database info: %v", err)
@@ -74,8 +75,9 @@ func main() {
 	log.Println("Répertoire courant:", cwd) // Afficher le répertoire courant
 
 	// Route pour servir une page HTML
-	app.Get("/test", func(c *fiber.Ctx) error {
-		return c.SendString("Test route")
+	app.Get("/database", func(c *fiber.Ctx) error {
+		return c.Render("./templates/databases.html", fiber.Map{})
+
 	})
 
 	// Route pour vérifier la connexion et enregistrer la base de données
