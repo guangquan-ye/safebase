@@ -6,6 +6,7 @@ import (
 	"log"
 	"safebase/database"
 	"strconv"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gofiber/fiber/v2"
@@ -52,12 +53,43 @@ func connectMainDB() error {
 
 // insertDatabaseInfo insère les informations de la nouvelle base de données dans mainDB
 func insertDatabaseInfo(dbName, dbType, dbPort, userName, password string) error {
+	// Obtenir la date actuelle
+	currentDate := time.Now().Format("02-01-2006_15:04:05") // Format YYYY-MM-DD pour le type DATE dans PostgreSQL
+	// Requête SQL mise à jour pour inclure la colonne 'date'
+	query := `INSERT INTO databases (db_name, db_type, db_port, user_name, password, date) VALUES ($1, $2, $3, $4, $5, $6)`
 
-	query := `INSERT INTO databases (db_name, db_type, db_port, user_name, password) VALUES ($1, $2, $3, $4, $5)`
-	_, err := mainDB.Exec(query, dbName, dbType, dbPort, userName, password)
+	// Exécution de la requête avec la date ajoutée
+	_, err := mainDB.Exec(query, dbName, dbType, dbPort, userName, password, currentDate)
 	if err != nil {
 		return fmt.Errorf("failed to insert database info: %v", err)
 	}
+	return nil
+}
+
+// insertBackupInfo insère les informations du dump dans la table backups
+func insertDumpInfo(dumpPath, dbName, dbType, userName, password string) error {
+	// Connexion à la base de données 'safebase'
+	connStr := fmt.Sprintf("host=safebase port=5432 user=%s password=%s dbname=safebase sslmode=disable", userName, password)
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		return fmt.Errorf("failed to connect to the database: %v", err)
+	}
+	defer db.Close()
+
+	// Vérifier la connexion
+	if err := db.Ping(); err != nil {
+		return fmt.Errorf("failed to ping the database: %v", err)
+	}
+	now := time.Now()
+	date := now.Format("02-01-2006_15:04:05")
+	fileName := fmt.Sprintf("%s%s_%s.sql", dumpPath, dbName, date)
+
+	// Insertion dans la table backups
+	_, err = db.Exec("INSERT INTO backups (dump_path, database_name, db_type) VALUES ($1, $2, $3)", fileName, dbName, dbType)
+	if err != nil {
+		return fmt.Errorf("failed to insert backup info: %v", err)
+	}
+
 	return nil
 }
 
@@ -140,14 +172,13 @@ func main() {
 		return c.Render("templates/restores.html", fiber.Map{})
 	})
 
-	// Add database route
 	app.Post("/addDatabase", func(c *fiber.Ctx) error {
 		var db Database
 		if err := c.BodyParser(&db); err != nil {
 			return errorResponse(c, 400, "Invalid input")
 		}
 
-		log.Printf("Received data: DBType=%s, DBName=%s, DBPort=%s, UserName=%s\n", db.DBType, db.DBName, db.DBPort, db.UserName)
+		log.Printf("Received data: DBType=%s, DBName=%s, DBPort=%s, UserName=%s, Password=%s\n,", db.DBType, db.DBName, db.DBPort, db.UserName, db.Password)
 
 		dynamicDB, err := database.ConnectDynamicDB(db.DBType, db.DBName, db.DBPort, db.UserName, db.Password)
 		if err != nil {
@@ -155,8 +186,11 @@ func main() {
 		}
 		defer dynamicDB.Close()
 
-		if err := insertDatabaseInfo(db); err != nil {
-			return errorResponse(c, 500, "Failed to insert database info: "+err.Error())
+		// Appel corrigé à la fonction insertDatabaseInfo
+		// Appel de la fonction pour insérer les informations du dump dans la table backups
+		err = insertDatabaseInfo(db.DBName, db.DBType, db.DBPort, db.UserName, db.Password)
+		if err != nil {
+			return c.Status(500).SendString("Failed to insert backup info into database: " + err.Error())
 		}
 
 		return c.JSON(fiber.Map{"status": "success", "message": "Database connected and info saved successfully!"})
@@ -204,12 +238,20 @@ func main() {
 			return errorResponse(c, 400, "Failed to parse JSON: "+err.Error())
 		}
 
+		// Appel de la fonction pour effectuer le dump de la base de données
 		err := database.DumpBdd(dataDump.DBType, dataDump.DBName, dataDump.DBPort, dataDump.UserName, dataDump.Password)
 		if err != nil {
 			return c.Status(500).SendString("Failed to dump Database: " + err.Error())
 		}
+		dumpPath := ("/app/docker_dumpFiles/")
 
-		return c.SendString("Dumped the database successfully!")
+		// Insertion des informations du dump dans la table backups
+		err = insertDumpInfo(dumpPath, dataDump.DBName, dataDump.DBType, dataDump.UserName, dataDump.Password)
+		if err != nil {
+			return c.Status(500).SendString("Failed to insert dump info into database: " + err.Error())
+		}
+
+		return c.SendString("Dumped the database and inserted info successfully!")
 	})
 
 	// Delete database by ID route
@@ -228,5 +270,5 @@ func main() {
 	})
 
 	// Start the Fiber app
-	log.Fatal(app.Listen(":8080"))
+	log.Fatal(app.Listen(":3006"))
 }

@@ -18,20 +18,25 @@ func ConnectDynamicDB(dbType, dbName, dbPort, userName, password string) (*sql.D
 
 	switch dbType {
 	case "postgres":
-		connStr = fmt.Sprintf("user=%s password=%s dbname=%s port=%s sslmode=disable", userName, password, dbName, dbPort)
+		// Connexion PostgreSQL
+		connStr = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", dbName, userName, password, dbName, dbPort)
 
 	case "mysql":
-		connStr = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", userName, password, dbPort, dbPort, dbName)
+		// Connexion MySQL (changer localhost par un hôte docker si nécessaire)
+		connStr = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", userName, password, dbName, dbPort, dbName)
 
 	default:
+		// Si le type de base de données n'est pas supporté
 		return nil, fmt.Errorf("unsupported database type: %s", dbType)
 	}
 
+	// Connexion à la base de données
 	db, err := sql.Open(dbType, connStr)
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect to database %s: %v", dbName, err)
 	}
 
+	// Tester la connexion
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("unable to ping database %s: %v", dbName, err)
 	}
@@ -39,7 +44,6 @@ func ConnectDynamicDB(dbType, dbName, dbPort, userName, password string) (*sql.D
 	fmt.Printf("Connected to the %s database %s successfully!\n", dbType, dbName)
 	return db, nil
 }
-
 func InsertDumpRoute(dbType, dbName, dbPort, userName, password string) error {
 	// // Vérifier le type de base de données
 	// if dbType != "postgres" {
@@ -82,16 +86,6 @@ func DumpBdd(dbType, dbName, dbPort, userName, password string) error {
 	switch dbType {
 	case "postgres":
 
-		// var host string
-		// switch dbName {
-		// case "safebase":
-		// 	host = "safebase"
-		// case "apple":
-		// 	host = "apple"
-		// case "blizzard":
-		// 	host = "blizzard"
-		// }
-
 		dumpCmdStr := fmt.Sprintf(
 			"PGPASSWORD=%s pg_dump -U %s -h %s -p 5432 %s",
 			password,
@@ -103,7 +97,8 @@ func DumpBdd(dbType, dbName, dbPort, userName, password string) error {
 
 	case "mysql":
 		dumpCmdStr := fmt.Sprintf(
-			"mysqldump -h huawey -u %s -p%s %s",
+			"mysqldump -h %s -u %s -p%s %s",
+			dbName,
 			userName,
 			password,
 			dbName,
@@ -143,17 +138,3 @@ func DumpBdd(dbType, dbName, dbPort, userName, password string) error {
 
 	return nil
 }
-
-// func addBdd(dbType, dbName, dbPort, userName, password string) error {
-
-// 	dumpCmdStr := fmt.Sprintf(
-// 		"PGPASSWORD=%s pg_dump -U %s -h %s -p 5432 %s",
-// 		password,
-// 		userName,
-// 		host,
-// 		dbName,
-// 	)
-// 	dumpCmd = exec.Command("/bin/sh", "-c", dumpCmdStr)
-
-// 	return nil
-// }
